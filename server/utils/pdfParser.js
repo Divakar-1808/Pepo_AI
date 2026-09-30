@@ -1,23 +1,50 @@
-const { PDFParse } = require("pdf-parse");
+const fs = require("fs");
+const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.mjs");
 
-const extractTextFromPDF = async (pdfBuffer) => {
-  let parser;
-
+const extractTextFromPDF = async (filePathOrBuffer) => {
   try {
-    parser = new PDFParse({
-      data: pdfBuffer,
-    });
+    let data;
 
-    const result = await parser.getText();
-
-    return result.text.trim();
-  } catch (error) {
-    console.error("PDF PARSING ERROR:", error);
-    throw new Error("Unable to extract text from PDF.");
-  } finally {
-    if (parser) {
-      await parser.destroy();
+    if (Buffer.isBuffer(filePathOrBuffer)) {
+      data = new Uint8Array(filePathOrBuffer);
+    } else {
+      data = new Uint8Array(
+        fs.readFileSync(filePathOrBuffer)
+      );
     }
+
+    const loadingTask =
+      pdfjsLib.getDocument({
+        data,
+      });
+
+    const pdf = await loadingTask.promise;
+
+    let extractedText = "";
+
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+      const page = await pdf.getPage(pageNumber);
+
+      const textContent =
+        await page.getTextContent();
+
+      const pageText = textContent.items
+        .map((item) => item.str)
+        .join(" ");
+
+      extractedText += pageText + "\n";
+    }
+
+    return extractedText.trim();
+  } catch (error) {
+    console.error(
+      "PDF PARSING ERROR:",
+      error
+    );
+
+    throw new Error(
+      "Unable to extract text from PDF."
+    );
   }
 };
 
