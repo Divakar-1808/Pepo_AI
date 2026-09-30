@@ -1,12 +1,9 @@
-const fs = require("fs");
 const { PDFParse } = require("pdf-parse");
 
-const extractTextFromPDF = async (filePath) => {
+const extractTextFromPDF = async (pdfBuffer) => {
   let parser;
 
   try {
-    const pdfBuffer = fs.readFileSync(filePath);
-
     parser = new PDFParse({
       data: pdfBuffer,
     });
@@ -16,7 +13,6 @@ const extractTextFromPDF = async (filePath) => {
     return result.text.trim();
   } catch (error) {
     console.error("PDF PARSING ERROR:", error);
-
     throw new Error("Unable to extract text from PDF.");
   } finally {
     if (parser) {
