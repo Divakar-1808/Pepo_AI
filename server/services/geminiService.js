@@ -7,36 +7,116 @@ const ai = new GoogleGenAI({
 const sleep = (ms) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-const analyzeResume = async (resumeText, jobDescription) => {
+const analyzeResume = async (
+  resumeText,
+  jobDescription
+) => {
   const prompt = `
 You are Pepo, an AI-powered resume analysis assistant.
 
-Analyze the candidate's resume against the provided job description.
+Your task is to analyze a candidate's resume against a specific job description.
+
+The analysis must be based ONLY on information actually present in the resume and job description.
 
 IMPORTANT RULES:
 
-1. Only use information actually present in the resume.
-2. Do not invent skills, experience, projects, education, certifications, or achievements.
-3. Do not make hiring decisions.
-4. Give a match score from 0 to 100.
-5. Identify skills clearly present in both the resume and job description.
-6. Identify important skills from the job description that are missing from the resume.
-7. Identify genuine strengths of the resume for this particular job.
-8. Provide exactly 3 important resume improvements.
-9. The improvements must be practical and specific.
-10. Return ONLY valid JSON.
-11. Do NOT use Markdown code fences.
-12. Do NOT write \`\`\`json.
-13. Do NOT write any explanation before or after the JSON.
+1. Never invent skills, experience, projects, education, certifications, achievements, or technologies.
+2. Do not assume that the candidate knows a technology just because it is related to another technology.
+3. If a skill is not explicitly present in the resume, treat it as missing.
+4. Do not make hiring decisions.
+5. Do not guarantee interviews or employment.
+6. Evaluate the resume specifically against THIS job description.
+7. Consider both exact keywords and meaningful contextual matches.
+8. Do not reward keyword stuffing.
+9. Consider ATS compatibility, resume structure, skills alignment, experience alignment, and job-specific keywords.
+10. Give scores from 0 to 100.
+11. Return exactly 3 practical resume improvements.
+12. Every improvement must be based on an actual gap or opportunity found in the resume/JD.
+13. Do not tell the candidate to add a skill unless the resume actually shows evidence that they have that skill.
+14. If the candidate does not have a required skill, recommend gaining that skill or demonstrating relevant existing experience rather than falsely adding it.
+15. Return ONLY valid JSON.
+16. Do NOT use Markdown.
+17. Do NOT use code fences.
+18. Do NOT write any explanation before or after the JSON.
 
-Return exactly this structure:
+SCORING:
+
+overallScore:
+Overall alignment between the resume and the job description.
+
+atsScore:
+How compatible the resume is with ATS systems based on structure, clarity, standard sections, formatting, and job-relevant terminology.
+
+keywordMatchScore:
+How well important keywords and concepts from the job description are represented in the resume.
+
+skillsMatchScore:
+How well the candidate's explicitly stated skills match the skills required by the job description.
+
+experienceMatchScore:
+How well the candidate's explicitly stated projects, work, academic, or practical experience aligns with the responsibilities of the job.
+
+structureScore:
+How clear, organized, readable, and ATS-friendly the resume structure is.
+
+IMPORTANT:
+Do not automatically give high scores.
+Scores must reflect the actual resume and job description.
+
+KEYWORD RULES:
+
+matchedKeywords:
+Include important job-description keywords that are clearly present in the resume.
+
+missingKeywords:
+Include important job-description keywords that are absent from the resume.
+
+Do not include every word from the job description.
+Focus on meaningful technical skills, tools, responsibilities, qualifications, and domain terminology.
+
+ATS ISSUES:
+
+List concrete ATS or resume-formatting problems only if they are actually visible from the resume text.
+
+STRENGTHS:
+
+List genuine strengths supported by the resume and relevant to this job.
+
+TOP FIXES:
+
+Return exactly 3 objects.
+
+Each object must contain:
+- title
+- explanation
+
+The explanation must clearly explain what the candidate should improve and why it matters for this particular job.
+
+SUMMARY:
+
+Write a concise explanation of how the resume currently aligns with the job description.
+
+Return EXACTLY this JSON structure:
 
 {
-  "score": 0,
-  "matchedSkills": [],
-  "missingSkills": [],
+  "overallScore": 0,
+  "atsScore": 0,
+  "keywordMatchScore": 0,
+  "skillsMatchScore": 0,
+  "experienceMatchScore": 0,
+  "structureScore": 0,
+
+  "summary": "",
+
+  "matchedKeywords": [],
+
+  "missingKeywords": [],
+
   "strengths": [],
-  "topFixes": [
+
+  "atsIssues": [],
+
+  "top3Fixes": [
     {
       "title": "",
       "explanation": ""
@@ -49,8 +129,7 @@ Return exactly this structure:
       "title": "",
       "explanation": ""
     }
-  ],
-  "summary": ""
+  ]
 }
 
 RESUME:
@@ -62,16 +141,21 @@ ${jobDescription}
 
   const maxRetries = 3;
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  for (
+    let attempt = 1;
+    attempt <= maxRetries;
+    attempt++
+  ) {
     try {
       console.log(
         `Gemini analysis attempt ${attempt}/${maxRetries}`
       );
 
-      const interaction = await ai.interactions.create({
-        model: "gemini-3.5-flash",
-        input: prompt,
-      });
+      const interaction =
+        await ai.interactions.create({
+          model: "gemini-3.5-flash",
+          input: prompt,
+        });
 
       const text = interaction.output_text;
 
@@ -81,37 +165,27 @@ ${jobDescription}
         );
       }
 
-      console.log("\nRAW GEMINI RESPONSE:");
+      console.log(
+        "\nRAW GEMINI RESPONSE:"
+      );
       console.log(text);
 
-      /*
-       * Gemini may sometimes return:
-       *
-       * ```json
-       * {
-       *   ...
-       * }
-       * ```
-       *
-       * JSON.parse() cannot parse the Markdown code fences.
-       * So we remove them before parsing.
-       */
+      // ----------------------------------------
+      // CLEAN GEMINI RESPONSE
+      // ----------------------------------------
 
       let cleanedText = text.trim();
 
-      // Remove opening ```json
       cleanedText = cleanedText.replace(
         /^```json\s*/i,
         ""
       );
 
-      // Remove opening ```
       cleanedText = cleanedText.replace(
         /^```\s*/,
         ""
       );
 
-      // Remove closing ```
       cleanedText = cleanedText.replace(
         /\s*```$/i,
         ""
@@ -119,8 +193,14 @@ ${jobDescription}
 
       cleanedText = cleanedText.trim();
 
-      console.log("\nCLEANED GEMINI RESPONSE:");
+      console.log(
+        "\nCLEANED GEMINI RESPONSE:"
+      );
       console.log(cleanedText);
+
+      // ----------------------------------------
+      // PARSE JSON
+      // ----------------------------------------
 
       let analysis;
 
@@ -143,61 +223,135 @@ ${jobDescription}
         );
       }
 
-      /*
-       * Validate the structure returned by Gemini.
-       */
+      // ----------------------------------------
+      // VALIDATE SCORE FIELDS
+      // ----------------------------------------
+
+      const scoreFields = [
+        "overallScore",
+        "atsScore",
+        "keywordMatchScore",
+        "skillsMatchScore",
+        "experienceMatchScore",
+        "structureScore",
+      ];
+
+      for (const field of scoreFields) {
+        if (
+          typeof analysis[field] !== "number"
+        ) {
+          throw new Error(
+            `Invalid or missing score field: ${field}`
+          );
+        }
+
+        analysis[field] = Math.max(
+          0,
+          Math.min(100, analysis[field])
+        );
+      }
+
+      // ----------------------------------------
+      // VALIDATE ARRAYS
+      // ----------------------------------------
+
+      const arrayFields = [
+        "matchedKeywords",
+        "missingKeywords",
+        "strengths",
+        "atsIssues",
+      ];
+
+      for (const field of arrayFields) {
+        if (!Array.isArray(analysis[field])) {
+          throw new Error(
+            `Invalid or missing array field: ${field}`
+          );
+        }
+      }
+
+      // ----------------------------------------
+      // VALIDATE SUMMARY
+      // ----------------------------------------
 
       if (
-        typeof analysis.score !== "number" ||
-        !Array.isArray(analysis.matchedSkills) ||
-        !Array.isArray(analysis.missingSkills) ||
-        !Array.isArray(analysis.strengths) ||
-        !Array.isArray(analysis.topFixes) ||
         typeof analysis.summary !== "string"
       ) {
-        console.error(
-          "\nINVALID ANALYSIS STRUCTURE:"
-        );
-
-        console.error(analysis);
-
         throw new Error(
-          "Gemini returned an unexpected analysis format."
+          "Invalid or missing summary."
         );
       }
 
-      /*
-       * Make sure the score stays between 0 and 100.
-       */
+      // ----------------------------------------
+      // VALIDATE TOP 3 FIXES
+      // ----------------------------------------
 
-      analysis.score = Math.max(
-        0,
-        Math.min(100, analysis.score)
-      );
-
-      /*
-       * Make sure Pepo receives exactly 3 fixes.
-       */
-
-      if (analysis.topFixes.length < 3) {
+      if (
+        !Array.isArray(analysis.top3Fixes)
+      ) {
         throw new Error(
-          "Gemini returned fewer than 3 resume improvements."
+          "Invalid or missing top3Fixes."
         );
       }
 
-      /*
-       * Keep only the first 3 fixes.
-       */
+      if (analysis.top3Fixes.length < 3) {
+        throw new Error(
+          "Gemini returned fewer than 3 fixes."
+        );
+      }
 
-      analysis.topFixes =
-        analysis.topFixes.slice(0, 3);
+      analysis.top3Fixes =
+        analysis.top3Fixes
+          .slice(0, 3)
+          .map((fix) => ({
+            title:
+              typeof fix.title === "string"
+                ? fix.title
+                : "Resume Improvement",
+
+            explanation:
+              typeof fix.explanation ===
+              "string"
+                ? fix.explanation
+                : "",
+          }));
+
+      // ----------------------------------------
+      // FINAL RESULT
+      // ----------------------------------------
 
       console.log(
         "\nGEMINI ANALYSIS SUCCESSFUL"
       );
 
       console.log(
-        `Score: ${analysis.score}`
+        "Overall Score:",
+        analysis.overallScore
+      );
+
+      console.log(
+        "ATS Score:",
+        analysis.atsScore
+      );
+
+      console.log(
+        "Keyword Match:",
+        analysis.keywordMatchScore
+      );
+
+      console.log(
+        "Skills Match:",
+        analysis.skillsMatchScore
+      );
+
+      console.log(
+        "Experience Match:",
+        analysis.experienceMatchScore
+      );
+
+      console.log(
+        "Structure Score:",
+        analysis.structureScore
       );
 
       return analysis;
@@ -207,18 +361,21 @@ ${jobDescription}
         error.message
       );
 
-      /*
-       * Retry temporary API errors.
-       */
+      // ----------------------------------------
+      // RETRY TEMPORARY API ERRORS
+      // ----------------------------------------
 
       if (
-        (error.status === 503 ||
+        (
+          error.status === 503 ||
           error.status === 429 ||
-          error.status === 500) &&
+          error.status === 500
+        ) &&
         attempt < maxRetries
       ) {
         const delay =
-          2000 * Math.pow(2, attempt - 1);
+          2000 *
+          Math.pow(2, attempt - 1);
 
         console.log(
           `Retrying Gemini in ${
@@ -231,31 +388,29 @@ ${jobDescription}
         continue;
       }
 
-      /*
-       * If this is the final attempt,
-       * return a clean error to the controller.
-       */
+      // ----------------------------------------
+      // RETRY OTHER ERRORS
+      // ----------------------------------------
 
-      if (attempt === maxRetries) {
-        throw new Error(
-          "Unable to analyze resume with Gemini."
+      if (attempt < maxRetries) {
+        const delay =
+          2000 *
+          Math.pow(2, attempt - 1);
+
+        console.log(
+          `Retrying Gemini in ${
+            delay / 1000
+          } seconds...`
         );
+
+        await sleep(delay);
+
+        continue;
       }
 
-      /*
-       * Retry other errors as well if attempts remain.
-       */
-
-      const delay =
-        2000 * Math.pow(2, attempt - 1);
-
-      console.log(
-        `Retrying Gemini in ${
-          delay / 1000
-        } seconds...`
+      throw new Error(
+        "Unable to analyze resume with Gemini."
       );
-
-      await sleep(delay);
     }
   }
 
