@@ -2,7 +2,6 @@ const fs = require("fs");
 
 const extractTextFromPDF = async (filePathOrBuffer) => {
   try {
-    // Import pdfjs-dist dynamically because it is an ES Module
     const pdfjsLib = await import(
       "pdfjs-dist/legacy/build/pdf.mjs"
     );
@@ -19,6 +18,7 @@ const extractTextFromPDF = async (filePathOrBuffer) => {
 
     const loadingTask = pdfjsLib.getDocument({
       data,
+      disableWorker: true,
     });
 
     const pdf = await loadingTask.promise;
@@ -32,8 +32,7 @@ const extractTextFromPDF = async (filePathOrBuffer) => {
     ) {
       const page = await pdf.getPage(pageNumber);
 
-      const textContent =
-        await page.getTextContent();
+      const textContent = await page.getTextContent();
 
       const pageText = textContent.items
         .map((item) => item.str)
