@@ -3,6 +3,10 @@ import { ArrowLeft, Lock, Mail } from "lucide-react";
 import { useState } from "react";
 import axios from "axios";
 
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:5000/api";
+
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +28,7 @@ function Login() {
       setLoading(true);
 
       const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        `${API_URL}/auth/login`,
         {
           email,
           password,
@@ -35,6 +39,7 @@ function Login() {
 
       if (data.success) {
         localStorage.setItem("token", data.token);
+
         localStorage.setItem(
           "user",
           JSON.stringify(data.user)
@@ -73,6 +78,7 @@ function Login() {
           transition={{ duration: 0.5 }}
           className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 shadow-2xl"
         >
+
           {/* Header */}
           <div className="mb-8">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-600 text-xl font-bold">
@@ -120,6 +126,7 @@ function Login() {
                     setEmail(event.target.value)
                   }
                   placeholder="you@example.com"
+                  autoComplete="email"
                   className="w-full rounded-xl border border-white/10 bg-black/40 py-3 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-red-500"
                 />
               </div>
@@ -144,6 +151,7 @@ function Login() {
                     setPassword(event.target.value)
                   }
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   className="w-full rounded-xl border border-white/10 bg-black/40 py-3 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-red-500"
                 />
               </div>
