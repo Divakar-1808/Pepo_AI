@@ -1,4 +1,5 @@
 const fs = require("fs");
+const path = require("path");
 
 const extractTextFromPDF = async (filePathOrBuffer) => {
   try {
@@ -16,9 +17,15 @@ const extractTextFromPDF = async (filePathOrBuffer) => {
       );
     }
 
+    // Explicitly configure the PDF.js worker
+    const workerPath = require.resolve(
+      "pdfjs-dist/legacy/build/pdf.worker.mjs"
+    );
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
+
     const loadingTask = pdfjsLib.getDocument({
       data,
-      disableWorker: true,
     });
 
     const pdf = await loadingTask.promise;
