@@ -1,5 +1,11 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Bot, FileText, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Bot,
+  FileText,
+  Sparkles,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
 function Landing() {
   return (
@@ -17,19 +23,19 @@ function Landing() {
         </div>
 
         <div className="flex items-center gap-3">
-          <a
-  href="/login"
-  className="rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:text-white"
->
-  Login
-</a>
+          <Link
+            to="/login"
+            className="rounded-lg px-4 py-2 text-sm text-gray-300 transition hover:text-white"
+          >
+            Login
+          </Link>
 
-          <a
-  href="/signup"
-  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold transition hover:bg-red-500"
->
-  Get Started
-</a>
+          <Link
+            to="/signup"
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold transition hover:bg-red-500"
+          >
+            Get Started
+          </Link>
         </div>
       </nav>
 
@@ -72,23 +78,24 @@ function Landing() {
             the most important improvements to make.
           </motion.p>
 
+          {/* CTA */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
-            className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
+            className="mt-10 flex justify-center"
           >
-            <button className="group flex items-center gap-2 rounded-xl bg-red-600 px-7 py-4 font-semibold transition duration-300 hover:-translate-y-1 hover:bg-red-500 hover:shadow-[0_0_35px_rgba(239,68,68,0.35)]">
+            <Link
+              to="/login"
+              className="group flex items-center gap-2 rounded-xl bg-red-600 px-7 py-4 font-semibold transition duration-300 hover:-translate-y-1 hover:bg-red-500 hover:shadow-[0_0_35px_rgba(239,68,68,0.35)]"
+            >
               Analyze My Resume
+
               <ArrowRight
                 size={18}
                 className="transition group-hover:translate-x-1"
               />
-            </button>
-
-            <button className="rounded-xl border border-white/10 px-7 py-4 font-semibold text-gray-300 transition hover:border-red-500/50 hover:text-white">
-              Learn More
-            </button>
+            </Link>
           </motion.div>
         </div>
 
@@ -120,7 +127,12 @@ function Landing() {
   );
 }
 
-function FeatureCard({ icon, title, description, delay }) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+  delay,
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
